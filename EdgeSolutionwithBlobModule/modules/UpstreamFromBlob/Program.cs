@@ -122,6 +122,7 @@ namespace UpstreamFromBlob
                 {
                     if (shouldUpstream)
                     {
+                        int count = 1;
                         CloudStorageAccount storageAccount = null;
                         CloudBlobContainer cloudBlobContainer = null;
                         // Check whether the connection string can be parsed.
@@ -155,7 +156,8 @@ namespace UpstreamFromBlob
                                                 message.ContentEncoding = "utf-8";
                                                 message.ContentType = "application/json";
                                                 await ioTHubModuleClient.SendEventAsync("output1", message);
-                                                Console.WriteLine($"Message sent: {body}");
+                                                Console.WriteLine($"Message sent {count}: {body}");
+                                                count++;
                                             }
                                         }
                                     }

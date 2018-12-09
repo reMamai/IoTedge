@@ -1,126 +1,131 @@
 {
   "$schema-template": "1.0.0",
   "modulesContent": {
-    "$edgeAgent": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "runtime": {
-          "type": "docker",
-          "settings": {
-            "minDockerVersion": "v1.25",
-            "loggingOptions": "",
-            "registryCredentials": {
-              "mcr": {
-                "username": "$CONTAINER_REGISTRY_USERNAME_mcr",
-                "password": "$CONTAINER_REGISTRY_PASSWORD_mcr",
-                "address": "mcr.microsoft.com"
-              }
-            }
-          }
-        },
-        "systemModules": {
-          "edgeAgent": {
-            "type": "docker",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-              "createOptions": {}
-            }
-          },
-          "edgeHub": {
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
-              "createOptions": {
-                "HostConfig": {
-                  "PortBindings": {
-                    "5671/tcp": [
-                      {
-                        "HostPort": "5671"
+      "$edgeAgent": {
+          "properties.desired": {
+              "schemaVersion": "1.0",
+              "runtime": {
+                  "type": "docker",
+                  "settings": {
+                      "loggingOptions": "",
+                      "minDockerVersion": "v1.25",
+                      "registryCredentials": {
+                          "mcr": {
+                              "address": "mcr.microsoft.com",
+                              "password": "$CONTAINER_REGISTRY_PASSWORD_mcr",
+                              "username": "$CONTAINER_REGISTRY_USERNAME_mcr"
+                          }
                       }
-                    ],
-                    "8883/tcp": [
-                      {
-                        "HostPort": "8883"
-                      }
-                    ],
-                    "443/tcp": [
-                      {
-                        "HostPort": "443"
-                      }
-                    ]
                   }
-                }
+              },
+              "systemModules": {
+                  "edgeAgent": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+                          "createOptions": "{}"
+                      }
+                  },
+                  "edgeHub": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+                          "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"
+                      },
+                      "status": "running",
+                      "restartPolicy": "always"
+                  }
+              },
+              "modules": {
+                  "tempSensor": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+                          "createOptions": "{}"
+                      },
+                      "version": "1.0",
+                      "status": "running",
+                      "restartPolicy": "always"
+                  },
+                  "blob": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "mcr.microsoft.com/azure-blob-storage:latest",
+                          "createOptions": "{\"Env\": [\"LOCAL_STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT_NAME\",\"LOCAL_STORAGE_ACCOUNT_KEY=$STORAGE_ACCOUNT_KEY\"],\"HostConfig\": {\"Binds\": [\"/srv/containerdata:/blobroot\"], \"PortBindings\": {\"11002/tcp\": [{\"HostPort\":\"11002\"}]}}}"
+                      },
+                      "version": "1.0",
+                      "status": "running",
+                      "restartPolicy": "always"
+                  },
+                  "StoreMessagesToBlob": {
+                      "type": "docker",
+                      "settings": {
+                        "image": "${MODULES.StoreMessagesToBlob}",
+                          "createOptions": "{}"
+                      },
+                      "version": "1.0",
+                      "status": "running",
+                      "restartPolicy": "always"
+                  },
+                  "UpstreamFromBlob": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "${MODULES.UpstreamFromBlob}",
+                          "createOptions": "{}"
+                      },
+                      "version": "1.0",
+                      "status": "running",
+                      "restartPolicy": "always"
+                  },
+                  "mvconedge": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "${MODULES.mvc}",
+                          "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"80/tcp\":[{\"HostPort\":\"8080\"}]}}}"
+                      },
+                      "version": "1.0",
+                      "status": "running",
+                      "restartPolicy": "always"
+                  },
+                  "samodule": {
+                      "type": "docker",
+                      "settings": {
+                          "image": "microsoft/azureiotedge-azure-stream-analytics:1.0.0",
+                          "createOptions": ""
+                      },
+                      "env": {
+                          "PlanId": {
+                              "value": "stream-analytics-on-iot-edge"
+                          }
+                      },
+                      "status": "running",
+                      "restartPolicy": "always",
+                      "version": "1.0"
+                  }
               }
-            }
           }
-        },
-        "modules": {
-          "tempSensor": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
-              "createOptions": {}
-            }
-          },
-          "blob": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "mcr.microsoft.com/azure-blob-storage:latest",
-              "createOptions": "{\"Env\": [\"LOCAL_STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT_NAME\",\"LOCAL_STORAGE_ACCOUNT_KEY=$STORAGE_ACCOUNT_KEY\"],\"HostConfig\": {\"Binds\": [\"/srv/containerdata:/blobroot\"], \"PortBindings\": {\"11002/tcp\": [{\"HostPort\":\"11002\"}]}}}"
-            }
-          },
-          "StoreMessagesToBlob": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.StoreMessagesToBlob}",
-              "createOptions": {}
-            }
-          },
-          "UpstreamFromBlob": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.UpstreamFromBlob}",
-              "createOptions": {}
-            }
-          },
-          "mvconedge": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.mvc}",
-              "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"80/tcp\":[{\"HostPort\":\"8080\"}]}}}"
-            }
+      },
+      "$edgeHub": {
+          "properties.desired": {
+              "schemaVersion": "1.0",
+              "routes": {
+                  "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/input1\")",
+                  "telemetryToAsa": "FROM /messages/modules/tempSensor/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
+                  "alertsToReset": "FROM /messages/modules/samodule/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
+                  "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream"
+              },
+              "storeAndForwardConfiguration": {
+                  "timeToLiveSecs": 15
+              }
           }
-        }
+      },
+      "samodule": {
+          "properties.desired": {
+              "ASAJobInfo": "https://blobincloud.blob.core.windows.net/sacontainer/ASAEdgeJobs/c83a396d-06f6-42c5-ac7f-5acb2bae9bbf/79742a11-4e47-49bb-be38-1df4ae19b4e0/ASAEdgeJobDefinition.zip?sv=2017-04-17&sr=b&sig=zEcw19QHZfnSwGXUPHiJAHI2HMBocGca9b0w48YDQUc%3D&st=2018-12-09T18%3A30%3A23Z&se=2021-12-09T18%3A40%3A23Z&sp=r",
+              "ASAJobResourceId": "/subscriptions/da1a1263-af88-4db0-8fa2-13e626164820/resourceGroups/iot2/providers/Microsoft.StreamAnalytics/streamingjobs/IoTEdgeJob",
+              "ASAJobEtag": "0d52af6d-35e8-4ae1-aa51-168450551604",
+              "PublishTimestamp": "12/9/2018 6:40:23 PM"
+          }
       }
-    },
-    "$edgeHub": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "routes": {
-          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/input1\")",        
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream"
-        },
-        "storeAndForwardConfiguration": {
-          "timeToLiveSecs": 10
-        }
-      }
-    }
   }
 }

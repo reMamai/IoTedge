@@ -6,6 +6,7 @@
 3. mvconedge populates total blob items and top 10 blob items in table
 4. mvconedge sends commands: StartUpstream, StopUpstream, CleanBlob to UpstreamFromBlob module; reset to tempSensor module
 5. UpstreamFromBlob module starts in silent mode by default and execute commands from mvconedge module
+6. samodule sends reset command to tempSensor if the average machine temperature in a 30-second window reaches 70 degrees
 
 https://docs.microsoft.com/en-us/azure/iot-edge/
 
@@ -21,6 +22,7 @@ module logs:
 * sudo iotedge logs azureBlobStorage -f
 * sudo iotedge logs UpstreamFromBlob -f
 * sudo iotedge logs mvconedge -f
+* sudo iotedge logs samodule -f
 
 serice iotedge:
 * sudo systemctl restart iotedge
