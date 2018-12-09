@@ -100,6 +100,11 @@ namespace mvc.Controllers
             await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "UpstreamFromBlob", new MethodRequest("CleanBlob", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("Blob");
         }
+        public async Task<IActionResult> Reset()
+        {
+            await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "tempSensor", new MethodRequest("reset", Encoding.UTF8.GetBytes("{}")));
+            return RedirectToAction("Blob");
+        }
 
         public IActionResult Contact()
         {
