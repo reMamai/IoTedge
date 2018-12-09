@@ -1,11 +1,11 @@
 # IoT Edge
 
 ## Message flow 
-*tempSensor module generates messages
-*StoreMessagesToBlob receives messages from tempSensor and stores into Blob storage
-*mvconedge populates total blob items and top 10 blob items in table
-*mvconedge sends commands: StartUpstream, StopUpstream, CleanBlob to UpstreamFromBlob module
-*UpstreamFromBlob module starts in silent mode by default and execute commands from mvconedge module
+###tempSensor module generates messages
+###StoreMessagesToBlob receives messages from tempSensor and stores into Blob storage
+###mvconedge populates total blob items and top 10 blob items in table
+###mvconedge sends commands: StartUpstream, StopUpstream, CleanBlob to UpstreamFromBlob module
+###UpstreamFromBlob module starts in silent mode by default and execute commands from mvconedge module
 
 https://docs.microsoft.com/en-us/azure/iot-edge/
 
