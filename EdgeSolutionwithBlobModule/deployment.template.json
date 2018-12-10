@@ -121,10 +121,10 @@
       },
       "samodule": {
           "properties.desired": {
-              "ASAJobInfo": "https://blobincloud.blob.core.windows.net/sacontainer/ASAEdgeJobs/c83a396d-06f6-42c5-ac7f-5acb2bae9bbf/79742a11-4e47-49bb-be38-1df4ae19b4e0/ASAEdgeJobDefinition.zip?sv=2017-04-17&sr=b&sig=zEcw19QHZfnSwGXUPHiJAHI2HMBocGca9b0w48YDQUc%3D&st=2018-12-09T18%3A30%3A23Z&se=2021-12-09T18%3A40%3A23Z&sp=r",
-              "ASAJobResourceId": "/subscriptions/da1a1263-af88-4db0-8fa2-13e626164820/resourceGroups/iot2/providers/Microsoft.StreamAnalytics/streamingjobs/IoTEdgeJob",
-              "ASAJobEtag": "0d52af6d-35e8-4ae1-aa51-168450551604",
-              "PublishTimestamp": "12/9/2018 6:40:23 PM"
+              "ASAJobInfo": "$ASA_JOB_INFO",
+              "ASAJobResourceId": "$ASA_JOB_RESOURCEID",
+              "ASAJobEtag": "$ASA_JOB_ETAG",
+              "PublishTimestamp": "$PUBLISH_TIMESTAMP"
           }
       }
   }
