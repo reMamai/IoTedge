@@ -18,6 +18,7 @@ namespace mvc.Controllers
     {
         private string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
         private ModuleClient ioTHubModuleClient = null;
+        private string deviceId;
         public HomeController()
         {
             Init().Wait();
@@ -29,6 +30,8 @@ namespace mvc.Controllers
             ITransportSettings[] settings = { amqpSetting };
             ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await ioTHubModuleClient.OpenAsync();
+            // Get deviced id of this device, exposed as a system variable by the iot edge runtime: export IOTEDGE_DEVICEID="myEdgeDeviceInGC"
+            deviceId = System.Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
         }
         public IActionResult Index()
         {
@@ -85,24 +88,24 @@ namespace mvc.Controllers
             return View(model);
         }
         public async Task<IActionResult> Start()
-        {
-            await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "UpstreamFromBlob", new MethodRequest("StartUpstream", Encoding.UTF8.GetBytes("{}")));
+        {            
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("StartUpstream", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("Blob");
         }
 
         public async Task<IActionResult> Stop()
         {
-            await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "UpstreamFromBlob", new MethodRequest("StopUpstream", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("StopUpstream", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("Blob");
         }
         public async Task<IActionResult> Clean()
         {
-            await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "UpstreamFromBlob", new MethodRequest("CleanBlob", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("CleanBlob", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("Blob");
         }
         public async Task<IActionResult> Reset()
         {
-            await ioTHubModuleClient.InvokeMethodAsync("myEdgeDeviceInGC", "tempSensor", new MethodRequest("reset", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "tempSensor", new MethodRequest("reset", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("Blob");
         }
 
