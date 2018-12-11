@@ -14,6 +14,11 @@
                 "username": "$CONTAINER_REGISTRY_USERNAME_mcr",
                 "password": "$CONTAINER_REGISTRY_PASSWORD_mcr",
                 "address": "mcr.microsoft.com"
+              },
+              "amlworkspace4142236962": {
+                "username": "$CONTAINER_REGISTRY_USERNAME_amlworkspace4142236962",
+                "password": "$CONTAINER_REGISTRY_PASSWORD_amlworkspace4142236962",
+                "address": "amlworkspace4142236962.azurecr.io"
               }
             }
           }
@@ -96,6 +101,26 @@
               "image": "${MODULES.UpstreamFromBlob.debug}",
               "createOptions": {}
             }
+          },
+          "anomalydetection": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:1",
+              "createOptions": {}
+            }
+          },
+          "mongodbmodule": {
+            "type": "docker",
+            "settings": {
+              "image": "jnjpoccontainerregistry.azurecr.io/jnjmongodb:latest",
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/mongodb\"],\"PortBindings\":{\"27017\":[{\"HostPort\":\"27017\"}]}}}"
+            },
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "4.0"
           }
         }
       }
@@ -107,7 +132,8 @@
           "azureBlobStorageToIoTHub": "FROM /messages/modules/azureBlobStorage/outputs/* INTO $upstream",
           "sensorToazureBlobStorage": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/azureBlobStorage/inputs/input1\")",
           "StoreMessagesToBlobIoTHub": "FROM /messages/modules/StoreMessagesToBlob/outputs/* INTO $upstream",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream"
+          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream",
+          "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
