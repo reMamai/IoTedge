@@ -120,7 +120,7 @@
           "mongodbmodule": {
             "type": "docker",
             "settings": {
-              "image": "jnjpoccontainerregistry.azurecr.io/jnjmongodb:latest",
+              "image": "amlworkspace4142236962.azurecr.io/jnjmongodb:latest",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/mongodb\"],\"PortBindings\":{\"27017\":[{\"HostPort\":\"27017\"}]}}}"
             },
             "status": "running",
