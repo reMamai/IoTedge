@@ -82,6 +82,26 @@
             "status": "running",
             "restartPolicy": "always"
           },
+          "tempSensorForMongo": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+              "createOptions": "{}"
+            },
+            "version": "1.0",
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "StoreMessagesToMongo": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "${MODULES.StoreMessagesToMongo}",
+              "createOptions": {}
+            }
+          },
           "mvconedge": {
             "type": "docker",
             "settings": {
@@ -138,7 +158,8 @@
           "telemetryToAsa": "FROM /messages/modules/tempSensor/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
           "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream",
-          "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream"
+          "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream",
+          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/input1\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
