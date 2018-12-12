@@ -49,7 +49,7 @@ namespace mvc.Controllers
                 try
                 {
                     CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
-                    cloudBlobContainer = cloudBlobClient.GetContainerReference("iotedge");
+                    cloudBlobContainer = cloudBlobClient.GetContainerReference("temperature");
                     BlobContinuationToken blobContinuationToken = null;
                     int count = 0;
                     do

@@ -107,16 +107,6 @@
             "restartPolicy": "always",
             "version": "1.0"
           },
-          "anomalydetection": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
-              "createOptions": {}
-            }
-          },
           "mongodbmodule": {
             "type": "docker",
             "settings": {
@@ -133,12 +123,12 @@
     "$edgeHub": {
       "properties.desired": {
         "schemaVersion": "1.0",
-        "routes": {
-          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/input1\")",
+        "routes": {          
+          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
+          "mlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream",
-          "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream"
+          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
