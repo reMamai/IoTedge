@@ -116,6 +116,16 @@
             "version": "1.0",
             "status": "running",
             "restartPolicy": "always"
+          },
+          "anomalydetection": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
+              "createOptions": {}
+            }
           }
         }
       }
@@ -124,11 +134,12 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {          
-          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
-          "mlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
-          "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
-          "alertsToReset": "FROM /messages/modules/samodule/outputs/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream"
+          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
+          "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",
+          "mlToStoreMessagesToBlob": "FROM /messages/modules/anomalydetection/outputs/amlOutput WHERE $body.anomaly = true INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
+          "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
+          "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
+          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
