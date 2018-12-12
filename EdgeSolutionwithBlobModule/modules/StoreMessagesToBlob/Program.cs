@@ -18,10 +18,17 @@ namespace StoreMessagesToBlob
 
     class Program
     {
+        const string temperatureContainer = "temperature";
+        const string anomalyContainer = "anomaly";
         static int counter;
         static int temperatureThreshold { get; set; } = 25;
         static string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
-        static bool isContainerCreated = false;
+        static IDictionary<string, bool> ContainersCreated = new Dictionary<string, bool>(
+            new List<KeyValuePair<string, bool>>
+            { 
+                new KeyValuePair<string, bool>(temperatureContainer, false),
+                new KeyValuePair<string, bool>(anomalyContainer, false)
+            });
 
         static void Main(string[] args)
         {
@@ -78,7 +85,8 @@ namespace StoreMessagesToBlob
             await ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
 
             // Register a callback for messages that are received by the module.
-            await ioTHubModuleClient.SetInputMessageHandlerAsync("input1", StoreMessage, ioTHubModuleClient);
+            await ioTHubModuleClient.SetInputMessageHandlerAsync("inputfortempsensor", ProcessMessageFromSensor, ioTHubModuleClient);
+            await ioTHubModuleClient.SetInputMessageHandlerAsync("inputforml", ProcessMessageFromML, ioTHubModuleClient);
         }
 
         static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object userContext)
@@ -108,7 +116,7 @@ namespace StoreMessagesToBlob
             return Task.CompletedTask;
         }
 
-        static async Task StoreMesssageToBlob(string message)
+        static async Task StoreMesssageToBlob(string message, string container)
         {
             CloudStorageAccount storageAccount = null;
             CloudBlobContainer cloudBlobContainer = null;
@@ -118,12 +126,12 @@ namespace StoreMessagesToBlob
                 try
                 {
                     CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
-                    cloudBlobContainer = cloudBlobClient.GetContainerReference("iotedge");
-                    if (!isContainerCreated)
+                    cloudBlobContainer = cloudBlobClient.GetContainerReference(container);
+                    if (!ContainersCreated[container])
                     {
                         if (!(await cloudBlobContainer.ExistsAsync()))
                             await cloudBlobContainer.CreateIfNotExistsAsync();
-                        isContainerCreated = true;
+                        ContainersCreated[container] = true;
                     }
                     CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(DateTime.UtcNow.ToString("yy.mm.dd.hh.mm.ss.ffffff"));
                     await cloudBlockBlob.UploadTextAsync(message);
@@ -135,7 +143,17 @@ namespace StoreMessagesToBlob
             }
         }
 
-        static async Task<MessageResponse> StoreMessage(Message message, object userContext)
+        static async Task<MessageResponse> ProcessMessageFromSensor(Message message, object userContext)
+        {
+            return await StoreMessage(message, userContext, temperatureContainer);
+        }
+
+        static async Task<MessageResponse> ProcessMessageFromML(Message message, object userContext)
+        {
+            return await StoreMessage(message, userContext, anomalyContainer);
+        }
+
+        static async Task<MessageResponse> StoreMessage(Message message, object userContext, string container)
         {
             var counterValue = Interlocked.Increment(ref counter);
             try
@@ -144,7 +162,7 @@ namespace StoreMessagesToBlob
                 var messageBytes = message.GetBytes();
                 var messageString = Encoding.UTF8.GetString(messageBytes);
                 Console.WriteLine($"Received message {counterValue}: [{messageString}]");
-                await StoreMesssageToBlob(messageString);
+                await StoreMesssageToBlob(messageString, container);
                 return MessageResponse.Completed;
             }
             catch (AggregateException ex)

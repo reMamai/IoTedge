@@ -82,26 +82,6 @@
             "status": "running",
             "restartPolicy": "always"
           },
-          "tempSensorForMongo": {
-            "type": "docker",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
-              "createOptions": "{}"
-            },
-            "version": "1.0",
-            "status": "running",
-            "restartPolicy": "always"
-          },
-          "StoreMessagesToMongo": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.StoreMessagesToMongo}",
-              "createOptions": {}
-            }
-          },
           "mvconedge": {
             "type": "docker",
             "settings": {
@@ -127,16 +107,6 @@
             "restartPolicy": "always",
             "version": "1.0"
           },
-          "anomalydetection": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
-              "createOptions": {}
-            }
-          },
           "mongodbmodule": {
             "type": "docker",
             "settings": {
@@ -146,6 +116,16 @@
             "version": "1.0",
             "status": "running",
             "restartPolicy": "always"
+          },
+          "anomalydetection": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
+              "createOptions": {}
+            }
           }
         }
       }
@@ -153,13 +133,13 @@
     "$edgeHub": {
       "properties.desired": {
         "schemaVersion": "1.0",
-        "routes": {
-          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/input1\")",
-          "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
-          "alertsToReset": "FROM /messages/modules/samodule/outputs/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream",
-          "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream",
-          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/input1\")"
+        "routes": {          
+          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
+          "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",
+          "mlToStoreMessagesToBlob": "FROM /messages/modules/anomalydetection/outputs/amlOutput WHERE $body.anomaly = true INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
+          "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
+          "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
+          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
