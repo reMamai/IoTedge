@@ -145,7 +145,7 @@
             "settings": {
               "image": "${MODULES.StoreMessagesToMongo}",
               "createOptions": {}
-            }            
+            }
           }
         }
       }
@@ -160,7 +160,7 @@
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
           "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream",
-          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/input1\")"
+          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/inputfortemp\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
