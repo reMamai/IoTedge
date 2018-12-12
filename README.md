@@ -23,6 +23,7 @@ module logs:
 * sudo iotedge logs UpstreamFromBlob -f
 * sudo iotedge logs mvconedge -f
 * sudo iotedge logs samodule -f
+* sudo iotedge logs anomalydetection -f
 
 serice iotedge:
 * sudo systemctl restart iotedge
@@ -39,3 +40,6 @@ docker commands with images:
 * docker rmi $(docker images -a -q) --all images
 * docker container prune
 * docker image prune -a
+
+export IOTEDGE_DEVICEID="myEdgeDevice3"
+export IOTEDGE_DEVICEID="myEdgeDeviceInGC"

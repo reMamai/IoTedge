@@ -133,7 +133,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:1",
+              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
               "createOptions": {}
             }
           },
@@ -155,8 +155,8 @@
         "schemaVersion": "1.0",
         "routes": {
           "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/input1\")",
-          "telemetryToAsa": "FROM /messages/modules/tempSensor/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
-          "alertsToReset": "FROM /messages/modules/samodule/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
+          "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/* INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
+          "alertsToReset": "FROM /messages/modules/samodule/outputs/* INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
           "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/* INTO $upstream",
           "anomalydetectionToIoTHub": "FROM /messages/modules/anomalydetection/outputs/* INTO $upstream",
           "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/input1\")"
