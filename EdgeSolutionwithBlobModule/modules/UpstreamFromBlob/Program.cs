@@ -15,6 +15,8 @@ namespace UpstreamFromBlob
     using Microsoft.WindowsAzure.Storage.Blob;
     class Program
     {
+        const string temperatureContainer = "temperature";
+        const string anomalyContainer = "anomaly";
         static int counter;
         static volatile bool shouldUpstream = false;
         static int IntervalForCommands = 5000;
@@ -60,12 +62,23 @@ namespace UpstreamFromBlob
 
             await ioTHubModuleClient.SetMethodHandlerAsync("StartUpstream", StartUpstream, null);
             await ioTHubModuleClient.SetMethodHandlerAsync("StopUpstream", StopUpstream, null);
-            await ioTHubModuleClient.SetMethodHandlerAsync("CleanBlob", CleanBlob, null);
+            await ioTHubModuleClient.SetMethodHandlerAsync("CleanBlobTemperature", CleanBlobTemperature, null);
+            await ioTHubModuleClient.SetMethodHandlerAsync("CleanBlobAnomaly", CleanBlobAnomaly, null);
 
             Upstream(ioTHubModuleClient);
         }
 
-        private static async Task<MethodResponse> CleanBlob(MethodRequest request, object userContext)
+        private static async Task<MethodResponse> CleanBlobTemperature(MethodRequest request, object userContext)
+        {
+            return await CleanBlob(temperatureContainer);
+        }
+
+        private static async Task<MethodResponse> CleanBlobAnomaly(MethodRequest request, object userContext)
+        {
+            return await CleanBlob(anomalyContainer);
+        }
+
+        private static async Task<MethodResponse> CleanBlob(string container)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
             Console.WriteLine("Received CleanBlob command via direct method invocation");
@@ -78,7 +91,7 @@ namespace UpstreamFromBlob
                 try
                 {
                     CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
-                    cloudBlobContainer = cloudBlobClient.GetContainerReference("iotedge");
+                    cloudBlobContainer = cloudBlobClient.GetContainerReference(container);
                     if (!(await cloudBlobContainer.ExistsAsync()))
                         await cloudBlobContainer.CreateIfNotExistsAsync();
                     else

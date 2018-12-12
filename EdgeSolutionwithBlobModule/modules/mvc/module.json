@@ -4,7 +4,7 @@
   "image": {
     "repository": "maksimguz/mvconedge",
     "tag": {
-      "version": "0.0.11",
+      "version": "0.0.14",
       "platforms": {
         "amd64": "./Dockerfile.amd64",
         "arm32v7": "./Dockerfile.arm32v7",

@@ -41,5 +41,4 @@ docker commands with images:
 * docker container prune
 * docker image prune -a
 
-export IOTEDGE_DEVICEID="myEdgeDevice3"
-export IOTEDGE_DEVICEID="myEdgeDeviceInGC"
+export IOTEDGE_DEVICEID="myEdgeDevice4"

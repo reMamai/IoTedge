@@ -1,0 +1,50 @@
+﻿@model mvc.Models.BlobModel
+
+@{
+    ViewData["Title"] = "Blob Anomaly";
+}
+
+<h2>Blob</h2>
+
+<div>
+    <h4>Total: @Model.Total</h4>
+    <hr />
+    <p>
+        <a class="btn btn-primary" asp-action="Start">Start Upstream</a>
+        <a class="btn btn-default" asp-action="Stop">Stop Upstream</a>
+        <a class="btn btn-default" asp-action="CleanAnomaly">Clean Blob</a>
+        <a class="btn btn-default" asp-action="Reset">Reset Sensor</a>
+    </p>
+    @if (@Model.BlobItems != null)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        Blob Item Name
+                    </th>
+                    <th>
+                        Message
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.BlobItems)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Key)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Value)
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div>
+    <a asp-action="Index">Home</a>
+</div>

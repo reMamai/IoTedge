@@ -1,7 +1,7 @@
 ﻿@model mvc.Models.BlobModel
 
 @{
-    ViewData["Title"] = "Blob";
+    ViewData["Title"] = "Blob Temperature";
 }
 
 <h2>Blob</h2>
@@ -12,7 +12,7 @@
     <p>
         <a class="btn btn-primary" asp-action="Start">Start Upstream</a>
         <a class="btn btn-default" asp-action="Stop">Stop Upstream</a>
-        <a class="btn btn-default" asp-action="Clean">Clean Blob</a>
+        <a class="btn btn-default" asp-action="CleanTemperature">Clean Blob</a>
         <a class="btn btn-default" asp-action="Reset">Reset Sensor</a>
     </p>
     @if (@Model.BlobItems != null)
