@@ -126,6 +126,26 @@
               "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
               "createOptions": {}
             }
+          },
+          "tempSensorForMongo": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+              "createOptions": "{}"
+            },
+            "version": "1.0",
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "StoreMessagesToMongo": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "${MODULES.StoreMessagesToMongo}",
+              "createOptions": {}
+            }
           }
         }
       }
@@ -139,7 +159,8 @@
           "mlToStoreMessagesToBlob": "FROM /messages/modules/anomalydetection/outputs/amlOutput WHERE $body.anomaly = true INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream"
+          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream",
+          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/* INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/input1\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15
