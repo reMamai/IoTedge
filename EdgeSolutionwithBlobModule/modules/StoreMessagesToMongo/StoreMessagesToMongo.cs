@@ -21,7 +21,7 @@ namespace Functions.Samples
 
         [FunctionName("StoreMessagesToMongo")]
         public static void FilterMessageAndSendMessage(
-                    [EdgeHubTrigger("input1")] Message messageReceived,
+                    [EdgeHubTrigger("inputfortemp")] Message messageReceived,
                     ILogger logger)
         {
             try
