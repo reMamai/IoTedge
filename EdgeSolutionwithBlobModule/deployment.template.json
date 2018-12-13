@@ -72,10 +72,10 @@
             "status": "running",
             "restartPolicy": "always"
           },
-          "UpstreamFromBlob": {
+          "UpstreamFromStorages": {
             "type": "docker",
             "settings": {
-              "image": "${MODULES.UpstreamFromBlob}",
+              "image": "${MODULES.UpstreamFromStorages}",
               "createOptions": "{}"
             },
             "version": "1.0",
@@ -117,16 +117,6 @@
             "status": "running",
             "restartPolicy": "always"
           },
-          "anomalydetection": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
-              "createOptions": {}
-            }
-          },
           "tempSensorForMongo": {
             "type": "docker",
             "settings": {
@@ -156,10 +146,10 @@
         "routes": {          
           "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
           "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",
-          "mlToStoreMessagesToBlob": "FROM /messages/modules/anomalydetection/outputs/* WHERE $body.anomaly = true INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
+          "fakemlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/*  INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromBlobToIoTHub": "FROM /messages/modules/UpstreamFromBlob/outputs/output1 INTO $upstream",
+          "UpstreamFromStoragesToIoTHub": "FROM /messages/modules/UpstreamFromStorages/outputs/output1 INTO $upstream",
           "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/inputfortemp\")"
         },
         "storeAndForwardConfiguration": {

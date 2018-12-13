@@ -1,8 +1,9 @@
-namespace UpstreamFromBlob
+namespace UpstreamFromStorages
 {
     using System;
     using System.Net;
     using System.IO;
+    using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
@@ -17,9 +18,14 @@ namespace UpstreamFromBlob
     {
         const string temperatureContainer = "temperature";
         const string anomalyContainer = "anomaly";
+        const string mongoCollectionName = "enrichedTempSensorData";
         static int counter;
         static volatile bool shouldUpstream = false;
         static int IntervalForCommands = 5000;
+        static UpstreamSettings upstreamSettings = new UpstreamSettings();
+        static int TodayMessagesTotal = 0;
+        static long TodayMessagesSizeInBytes = 0;
+        static DateTime CurrentLimitsDay = DateTime.UtcNow;
         static string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
 
         static void Main(string[] args)
@@ -49,8 +55,9 @@ namespace UpstreamFromBlob
         /// </summary>
         static async Task Init()
         {
+            upstreamSettings.InitDefaults();
             AmqpTransportSettings amqpSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-            ITransportSettings[] settings = { amqpSetting };
+            ITransportSettings[] settings = { amqpSetting };            
 
             // Open a connection to the Edge runtime
             ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
@@ -114,7 +121,15 @@ namespace UpstreamFromBlob
         private static Task<MethodResponse> StartUpstream(MethodRequest request, object userContext)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
-            Console.WriteLine("Received StartUpstream command via direct method invocation");
+            Console.WriteLine($"Received StartUpstream command: {request.DataAsJson}");
+            try
+            {
+                upstreamSettings = JsonConvert.DeserializeObject<UpstreamSettings>(request.DataAsJson);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to deserialize control command with exception: [{ex.Message}]");
+            }
             shouldUpstream = true;
             return Task.FromResult(response);
         }
@@ -135,53 +150,30 @@ namespace UpstreamFromBlob
                 {
                     if (shouldUpstream)
                     {
-                        int count = 1;
-                        CloudStorageAccount storageAccount = null;
-                        CloudBlobContainer cloudBlobContainer = null;
-                        // Check whether the connection string can be parsed.
-                        if (CloudStorageAccount.TryParse(storageConnectionString, out storageAccount))
+                        var upstreamMethods = new SortedDictionary<int, FuncWithArgs>();
+                        upstreamMethods.Add(upstreamSettings.AnomalyPriority, new FuncWithArgs
                         {
-                            try
-                            {
-                                CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
-                                cloudBlobContainer = cloudBlobClient.GetContainerReference("iotedge");
-                                if (!(await cloudBlobContainer.ExistsAsync()))
-                                    await cloudBlobContainer.CreateIfNotExistsAsync();
-                                BlobContinuationToken blobContinuationToken = null;
-                                do
-                                {
-                                    var results = await cloudBlobContainer.ListBlobsSegmentedAsync(null, blobContinuationToken);
-                                    // Get the value of the continuation token returned by the listing call.
-                                    blobContinuationToken = results.ContinuationToken;
-                                    foreach (IListBlobItem item in results.Results)
-                                    {
-                                        if (!shouldUpstream)
-                                            break;
-                                        if (item.GetType() == typeof(CloudBlockBlob))
-                                        {
-                                            CloudBlockBlob blob = (CloudBlockBlob)item;
-                                            Console.WriteLine(await blob.DownloadTextAsync());
-                                            var body = await blob.DownloadTextAsync();
-                                            if (!string.IsNullOrEmpty(body))
-                                            {
-                                                var messageBytes = Encoding.UTF8.GetBytes(body);
-                                                var message = new Message(messageBytes);
-                                                message.ContentEncoding = "utf-8";
-                                                message.ContentType = "application/json";
-                                                await ioTHubModuleClient.SendEventAsync("output1", message);
-                                                Console.WriteLine($"Message sent {count}: {body}");
-                                                count++;
-                                            }
-                                        }
-                                    }
-                                    shouldUpstream = false;
-                                } while (blobContinuationToken != null && shouldUpstream);
-                            }
-                            catch (StorageException ex)
-                            {
-                                Console.WriteLine($"Error returned from the service: {ex}");
-                            }
+                            Func = UpstreamFromBlob,
+                            Container = anomalyContainer,
+                            ModuleClient = ioTHubModuleClient
+                        });
+                        upstreamMethods.Add(upstreamSettings.TemperaturePriority, new FuncWithArgs
+                        {
+                            Func = UpstreamFromBlob,
+                            Container = temperatureContainer,
+                            ModuleClient = ioTHubModuleClient
+                        });
+                        upstreamMethods.Add(upstreamSettings.MirthPriority, new FuncWithArgs
+                        {
+                            Func = UpstreamFromBlob,
+                            Container = mongoCollectionName,
+                            ModuleClient = ioTHubModuleClient
+                        });
+                        foreach (var method in upstreamMethods)
+                        {
+                            await method.Value.Func(method.Value.Container, method.Value.ModuleClient);
                         }
+                        shouldUpstream = false;
                     }
                     else
                     {
@@ -197,6 +189,94 @@ namespace UpstreamFromBlob
             }
         }
 
+        private static bool IsLimitsReached(byte[] message)
+        {
+            if (CurrentLimitsDay.Date != DateTime.UtcNow.Date)
+            {
+                CurrentLimitsDay = DateTime.UtcNow;
+                TodayMessagesTotal = 0;
+                TodayMessagesSizeInBytes = 0;
+            }
+            if (TodayMessagesTotal + 1 < upstreamSettings.TotalMessagesLimit)
+            {
+                TodayMessagesTotal++;
+            }
+            else
+            {
+                Console.WriteLine($"Limit by total messages has been reached: {TodayMessagesTotal+1}");
+                return true;
+            }
+            if (TodayMessagesSizeInBytes + message.LongLength < upstreamSettings.TotalSizeInKbLimit * 1024)
+            {
+                TodayMessagesSizeInBytes += message.LongLength;
+            }
+            else
+            {
+                Console.WriteLine($"Limit by messages size has been reached: {TodayMessagesSizeInBytes}");
+                return true;
+            }
+            return false;
+        }
+
+        private static async Task UpstreamFromBlob(string container, ModuleClient ioTHubModuleClient)
+        {
+            Console.WriteLine("***");
+            Console.WriteLine($"Upstream from {container}");
+            int count = 1;
+            CloudStorageAccount storageAccount = null;
+            CloudBlobContainer cloudBlobContainer = null;
+            // Check whether the connection string can be parsed.
+            if (CloudStorageAccount.TryParse(storageConnectionString, out storageAccount))
+            {
+                try
+                {
+                    CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
+                    cloudBlobContainer = cloudBlobClient.GetContainerReference(container);
+                    if (!(await cloudBlobContainer.ExistsAsync()))
+                        await cloudBlobContainer.CreateIfNotExistsAsync();
+                    BlobContinuationToken blobContinuationToken = null;
+                    do
+                    {
+                        var results = await cloudBlobContainer.ListBlobsSegmentedAsync(null, blobContinuationToken);
+                        // Get the value of the continuation token returned by the listing call.
+                        blobContinuationToken = results.ContinuationToken;
+                        foreach (IListBlobItem item in results.Results)
+                        {
+                            if (!shouldUpstream)
+                                break;
+                            if (item.GetType() == typeof(CloudBlockBlob))
+                            {
+                                CloudBlockBlob blob = (CloudBlockBlob)item;
+                                Console.WriteLine(await blob.DownloadTextAsync());
+                                var body = await blob.DownloadTextAsync();
+                                if (!string.IsNullOrEmpty(body))
+                                {
+                                    var messageBytes = Encoding.UTF8.GetBytes(body);
+                                    if (IsLimitsReached(messageBytes))
+                                    {
+                                        shouldUpstream = false;
+                                    }
+                                    else
+                                    {
+                                        var message = new Message(messageBytes);
+                                        message.ContentEncoding = "utf-8";
+                                        message.ContentType = "application/json";
+                                        await ioTHubModuleClient.SendEventAsync("output1", message);
+                                        Console.WriteLine($"Message sent {count}: {body}");
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                    } while (blobContinuationToken != null && shouldUpstream);
+                }
+                catch (StorageException ex)
+                {
+                    Console.WriteLine($"Error returned from the service: {ex}");
+                }
+            }
+        }
+
         /// <summary>
         /// This method is called whenever the module is sent a message from the EdgeHub. 
         /// It just pipe the messages without any change.
@@ -204,7 +284,7 @@ namespace UpstreamFromBlob
         /// </summary>
         static async Task<MessageResponse> ExecuteCommand(Message message, object userContext)
         {
-            Console.WriteLine("PipeMessage");
+            Console.WriteLine("ExecuteCommand");
             int counterValue = Interlocked.Increment(ref counter);
 
             var moduleClient = userContext as ModuleClient;
@@ -230,7 +310,7 @@ namespace UpstreamFromBlob
                                 Console.WriteLine("Start upstream");
                                 break;
                             case "stop":
-                                shouldUpstream = true;
+                                shouldUpstream = false;
                                 Console.WriteLine("Stop upstream");
                                 break;
                             default:
@@ -244,5 +324,30 @@ namespace UpstreamFromBlob
             }
             return MessageResponse.Completed;
         }
+    }
+
+    public class UpstreamSettings
+    {
+        public int TotalMessagesLimit { get; set; }
+        public int TotalSizeInKbLimit { get; set; }
+        public int TemperaturePriority { get; set; }
+        public int AnomalyPriority { get; set; }
+        public int MirthPriority { get; set; }
+
+        public void InitDefaults()
+        {
+            TotalMessagesLimit = 100;
+            TotalSizeInKbLimit = 100;
+            AnomalyPriority = 1;
+            TemperaturePriority = 2;
+            MirthPriority = 3;
+        }
+    }
+
+    public class FuncWithArgs
+    {
+        public Func<string, ModuleClient, Task> Func { get; set; }
+        public string Container { get; set; }
+        public ModuleClient ModuleClient { get; set; }
     }
 }

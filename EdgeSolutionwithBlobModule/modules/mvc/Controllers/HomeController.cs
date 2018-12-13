@@ -11,6 +11,7 @@ using Microsoft.Azure.Devices.Client;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using mvc.Models;
+using Newtonsoft.Json;
 
 namespace mvc.Controllers
 {
@@ -21,8 +22,17 @@ namespace mvc.Controllers
         private string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
         private ModuleClient ioTHubModuleClient = null;
         private string deviceId;
-        public HomeController()
+        private string moduleUpstreamFromStorages = "UpstreamFromStorages";
+        private static UpstreamSettings settings = new UpstreamSettings
         {
+            TotalMessagesLimit = 100,
+            TotalSizeInKbLimit = 100,
+            AnomalyPriority = 1,
+            TemperaturePriority = 2,
+            MirthPriority = 3
+        };
+        public HomeController()
+        {            
             Init().Wait();
         }
 
@@ -40,9 +50,9 @@ namespace mvc.Controllers
             return View();
         }
 
-        private async Task<BlobModel> Fetch(string container)
+        private async Task<StoreModel> Fetch(string container)
         {
-            var model = new BlobModel { BlobItems = new List<KeyValuePair<string, string>>() };
+            var model = new StoreModel { StoreItems = new List<KeyValuePair<string, string>>() };
 
             CloudStorageAccount storageAccount = null;
             CloudBlobContainer cloudBlobContainer = null;
@@ -67,7 +77,7 @@ namespace mvc.Controllers
                                 {
                                     CloudBlockBlob blob = (CloudBlockBlob)item;
                                     var content = await blob.DownloadTextAsync();
-                                    model.BlobItems.Add(new KeyValuePair<string, string>(item.Uri.AbsoluteUri, content));
+                                    model.StoreItems.Add(new KeyValuePair<string, string>(item.Uri.AbsoluteUri, content));
                                 }
                             }
                             count++;
@@ -95,30 +105,42 @@ namespace mvc.Controllers
             return View(model);
         }
         public async Task<IActionResult> Start()
-        {            
-            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("StartUpstream", Encoding.UTF8.GetBytes("{}")));
+        {
+            var payload = JsonConvert.SerializeObject(settings);
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, moduleUpstreamFromStorages, new MethodRequest("StartUpstream", Encoding.UTF8.GetBytes(payload)));
             return RedirectToAction("BlobTemperature");
         }
 
         public async Task<IActionResult> Stop()
         {
-            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("StopUpstream", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, moduleUpstreamFromStorages, new MethodRequest("StopUpstream", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("BlobTemperature");
         }
         public async Task<IActionResult> CleanTemperature(string container)
         {
-            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("CleanBlobTemperature", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, moduleUpstreamFromStorages, new MethodRequest("CleanBlobTemperature", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("BlobTemperature");
         }
         public async Task<IActionResult> CleanAnomaly(string container)
         {
-            await ioTHubModuleClient.InvokeMethodAsync(deviceId, "UpstreamFromBlob", new MethodRequest("CleanBlobAnomaly", Encoding.UTF8.GetBytes("{}")));
+            await ioTHubModuleClient.InvokeMethodAsync(deviceId, moduleUpstreamFromStorages, new MethodRequest("CleanBlobAnomaly", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("BlobAnomaly");
         }
         public async Task<IActionResult> Reset()
         {
             await ioTHubModuleClient.InvokeMethodAsync(deviceId, "tempSensor", new MethodRequest("reset", Encoding.UTF8.GetBytes("{}")));
             return RedirectToAction("BlobTemperature");
+        }
+
+        public IActionResult Settings()
+        {            
+            return View(settings);
+        }
+        [HttpPost]
+        public IActionResult Settings([Bind("AnomalyPriority, MirthPriority, TemperaturePriority, TotalMessagesLimit, TotalSizeInKbLimit")]UpstreamSettings model)
+        {
+            settings = model;
+            return View(settings);
         }
 
         public IActionResult Contact()

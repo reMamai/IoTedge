@@ -1,0 +1,53 @@
+﻿@model mvc.Models.UpstreamSettings
+
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<h2>Settings</h2>
+
+<h4>UpstreamSettings</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Settings">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="TotalMessagesLimit" class="control-label"></label>
+                <input asp-for="TotalMessagesLimit" class="form-control" />
+                <span asp-validation-for="TotalMessagesLimit" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TotalSizeInKbLimit" class="control-label"></label>
+                <input asp-for="TotalSizeInKbLimit" class="form-control" />
+                <span asp-validation-for="TotalSizeInKbLimit" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TemperaturePriority" class="control-label"></label>
+                <input asp-for="TemperaturePriority" class="form-control" />
+                <span asp-validation-for="TemperaturePriority" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="AnomalyPriority" class="control-label"></label>
+                <input asp-for="AnomalyPriority" class="form-control" />
+                <span asp-validation-for="AnomalyPriority" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MirthPriority" class="control-label"></label>
+                <input asp-for="MirthPriority" class="form-control" />
+                <span asp-validation-for="MirthPriority" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-default" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
