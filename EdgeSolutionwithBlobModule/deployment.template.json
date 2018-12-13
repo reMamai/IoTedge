@@ -136,6 +136,16 @@
               "image": "${MODULES.StoreMessagesToMongo}",
               "createOptions": {}
             }
+          },
+          "anomalydetection": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:2",
+              "createOptions": {}
+            }
           }
         }
       }
@@ -145,8 +155,8 @@
         "schemaVersion": "1.0",
         "routes": {          
           "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
-          "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",
-          "fakemlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/*  INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
+          "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",          
+          "mlToStoreMessagesToBlob": "FROM /messages/modules/anomalydetection/outputs/amlOutput WHERE $body.anomaly = true INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
           "UpstreamFromStoragesToIoTHub": "FROM /messages/modules/UpstreamFromStorages/outputs/output1 INTO $upstream",
