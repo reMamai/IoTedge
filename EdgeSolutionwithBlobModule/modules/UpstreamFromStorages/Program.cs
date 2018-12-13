@@ -14,6 +14,9 @@ namespace UpstreamFromStorages
     using Newtonsoft.Json;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
+    using MongoDB.Bson;
+    using MongoDB.Driver;
+
     class Program
     {
         const string temperatureContainer = "temperature";
@@ -27,6 +30,8 @@ namespace UpstreamFromStorages
         static long TodayMessagesSizeInBytes = 0;
         static DateTime CurrentLimitsDay = DateTime.UtcNow;
         static string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
+        static string mongoConnectionString = "mongodb://mongodbmodule:27017";
+        private static string dbName = "tempSensorData";
 
         static void Main(string[] args)
         {
@@ -57,7 +62,7 @@ namespace UpstreamFromStorages
         {
             upstreamSettings.InitDefaults();
             AmqpTransportSettings amqpSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-            ITransportSettings[] settings = { amqpSetting };            
+            ITransportSettings[] settings = { amqpSetting };
 
             // Open a connection to the Edge runtime
             ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
@@ -165,7 +170,7 @@ namespace UpstreamFromStorages
                         });
                         upstreamMethods.Add(upstreamSettings.MirthPriority, new FuncWithArgs
                         {
-                            Func = UpstreamFromBlob,
+                            Func = UpstreamFromMongo,
                             Container = mongoCollectionName,
                             ModuleClient = ioTHubModuleClient
                         });
@@ -203,7 +208,7 @@ namespace UpstreamFromStorages
             }
             else
             {
-                Console.WriteLine($"Limit by total messages has been reached: {TodayMessagesTotal+1}");
+                Console.WriteLine($"Limit by total messages has been reached: {TodayMessagesTotal + 1}");
                 return true;
             }
             if (TodayMessagesSizeInBytes + message.LongLength < upstreamSettings.TotalSizeInKbLimit * 1024)
@@ -218,10 +223,55 @@ namespace UpstreamFromStorages
             return false;
         }
 
+        private static IMongoCollection<T> GetCollection<T>(MongoClient client) where T : class
+        {
+            var database = client.GetDatabase(dbName);
+            return database.GetCollection<T>(mongoCollectionName);
+        }
+        private static async Task UpstreamFromMongo(string container, ModuleClient ioTHubModuleClient)
+        {
+            Console.WriteLine("***");
+            Console.WriteLine($"Upstream from Mongo: {container}");
+            int count = 1;
+            MongoClient client = new MongoClient(mongoConnectionString);
+            try
+            {
+                var collection = GetCollection<MessageBody>(client);
+                var all = collection.Find(FilterDefinition<MessageBody>.Empty);
+
+                foreach (var document in all.ToList())
+                {
+                    if (!shouldUpstream)
+                       break;
+
+                    var body = document.ToJson();
+                    var messageBytes = Encoding.UTF8.GetBytes(body);
+
+                    if (IsLimitsReached(messageBytes))
+                    {
+                        shouldUpstream = false;
+                    }
+                    else
+                    {
+                        var message = new Message(messageBytes);
+                        message.ContentEncoding = "utf-8";
+                        message.ContentType = "application/json";
+                        await ioTHubModuleClient.SendEventAsync("output1", message);
+                        Console.WriteLine($"Message sent {count}: {body} from Mongo DB");
+                        count++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error returned from the UpstreamFromMongo: {ex}");
+            }
+        }
+
         private static async Task UpstreamFromBlob(string container, ModuleClient ioTHubModuleClient)
         {
             Console.WriteLine("***");
-            Console.WriteLine($"Upstream from {container}");
+            Console.WriteLine($"Upstream from Blob: {container}");
             int count = 1;
             CloudStorageAccount storageAccount = null;
             CloudBlobContainer cloudBlobContainer = null;
@@ -349,5 +399,29 @@ namespace UpstreamFromStorages
         public Func<string, ModuleClient, Task> Func { get; set; }
         public string Container { get; set; }
         public ModuleClient ModuleClient { get; set; }
+    }
+    class MessageBody
+    {
+        public ObjectId _id { get; set; }
+        public Machine machine { get; set; }
+        public Ambient ambient { get; set; }
+        public string timeCreated { get; set; }
+        public MirthInfo mirthInfo { get; set; }
+    }
+    class Machine
+    {
+        public double temperature { get; set; }
+        public double pressure { get; set; }
+    }
+    class Ambient
+    {
+        public double temperature { get; set; }
+        public int humidity { get; set; }
+    }
+
+    class MirthInfo
+    {
+        public string pId { get; set; }
+        public string name { get; set; }
     }
 }

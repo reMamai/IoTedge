@@ -12,6 +12,8 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using mvc.Models;
 using Newtonsoft.Json;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace mvc.Controllers
 {
@@ -19,6 +21,10 @@ namespace mvc.Controllers
     {
         const string temperatureContainer = "temperature";
         const string anomalyContainer = "anomaly";
+        const string mongoCollectionName = "enrichedTempSensorData";
+        const string mongoConnectionString = "mongodb://mongodbmodule:27017";
+        const string dbName = "tempSensorData";
+
         private string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
         private ModuleClient ioTHubModuleClient = null;
         private string deviceId;
@@ -50,7 +56,35 @@ namespace mvc.Controllers
             return View();
         }
 
-        private async Task<StoreModel> Fetch(string container)
+        private async Task<StoreModel> FetchFromMongo(string container)
+        {
+            var model = new StoreModel { StoreItems = new List<KeyValuePair<string, string>>() };
+            MongoClient client = new MongoClient(mongoConnectionString);
+            var database = client.GetDatabase(dbName);            
+            try
+            {
+                var collection = database.GetCollection<MessageBody>(mongoCollectionName);
+                var all = await collection.FindAsync(FilterDefinition<MessageBody>.Empty);
+                int count = 0;
+                foreach (var document in all.ToList())
+                {
+                    if (count < 10)
+                    {
+                        var content = document.ToJson();
+                        model.StoreItems.Add(new KeyValuePair<string, string>(document.timeCreated, content));
+                    }
+                    count++;
+                }
+                model.Total = count;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error returned from the UpstreamFromMongo: {ex}");
+            }
+            return model;
+        }
+
+        private async Task<StoreModel> FetchFromBlob(string container)
         {
             var model = new StoreModel { StoreItems = new List<KeyValuePair<string, string>>() };
 
@@ -95,13 +129,18 @@ namespace mvc.Controllers
         }
         public async Task<IActionResult> BlobTemperature()
         {
-            var model = await Fetch(temperatureContainer);
+            var model = await FetchFromBlob(temperatureContainer);
+            return View(model);
+        }
+        public async Task<IActionResult> Mongo()
+        {
+            var model = await FetchFromMongo(mongoCollectionName);
             return View(model);
         }
 
         public async Task<IActionResult> BlobAnomaly()
         {
-            var model = await Fetch(anomalyContainer);
+            var model = await FetchFromBlob(anomalyContainer);
             return View(model);
         }
         public async Task<IActionResult> Start()
@@ -161,4 +200,29 @@ namespace mvc.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
+
+    class MessageBody
+    {
+        public ObjectId _id { get; set; }
+        public Machine machine { get; set; }
+        public Ambient ambient { get; set; }
+        public string timeCreated { get; set; }
+        public MirthInfo mirthInfo { get; set; }
+    }
+    class Machine
+    {
+        public double temperature { get; set; }
+        public double pressure { get; set; }
+    }
+    class Ambient
+    {
+        public double temperature { get; set; }
+        public int humidity { get; set; }
+    }
+
+    class MirthInfo
+    {
+        public string pId { get; set; }
+        public string name { get; set; }
+    }    
 }
