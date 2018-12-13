@@ -2,7 +2,7 @@
   "$schema-version": "0.0.1",
   "description": "",
   "image": {
-    "repository": "amlworkspace4142236962.azurecr.io/mvconedge",
+    "repository": "iotregistrydev.azurecr.io/mvconedge",
     "tag": {
       "version": "0.0.5",
       "platforms": {

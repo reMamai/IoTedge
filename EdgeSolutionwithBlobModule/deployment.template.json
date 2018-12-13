@@ -18,7 +18,7 @@
               "amlworkspace4142236962": {
                 "username": "$CONTAINER_REGISTRY_USERNAME_amlworkspace4142236962",
                 "password": "$CONTAINER_REGISTRY_PASSWORD_amlworkspace4142236962",
-                "address": "amlworkspace4142236962.azurecr.io"
+                "address": "iotregistrydev.azurecr.io"
               }
             }
           }

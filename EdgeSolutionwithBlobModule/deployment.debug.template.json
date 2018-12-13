@@ -18,7 +18,7 @@
               "amlworkspace4142236962": {
                 "username": "$CONTAINER_REGISTRY_USERNAME_amlworkspace4142236962",
                 "password": "$CONTAINER_REGISTRY_PASSWORD_amlworkspace4142236962",
-                "address": "amlworkspace4142236962.azurecr.io"
+                "address": "iotregistrydev.azurecr.io"
               }
             }
           }
@@ -108,14 +108,14 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:1",
+              "image": "iotregistrydev.azurecr.io/anomalydetection:1",
               "createOptions": {}
             }
           },
           "mongodbmodule": {
             "type": "docker",
             "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/jnjmongodb:latest",
+              "image": "iotregistrydev.azurecr.io/jnjmongodb:latest",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/mongodb\"],\"PortBindings\":{\"27017\":[{\"HostPort\":\"27017\"}]}}}"
             },
             "status": "running",
