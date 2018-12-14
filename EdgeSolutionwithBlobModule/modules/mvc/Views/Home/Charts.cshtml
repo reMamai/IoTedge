@@ -1,0 +1,96 @@
+﻿
+@{
+    ViewData["Title"] = "Charts";
+}
+
+<h2>Charts</h2>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        // Real-time Chart Example written by Simon Brunel (Plunker: https://plnkr.co/edit/Imxwl9OQJuaMepLNy6ly?p=info)
+        var samples = 100;
+        var speed = 450;
+        var valuesMachineTemperature = [];
+        var valuesAmbientTemperature = [];
+        var labels = [];
+
+        valuesMachineTemperature.length = samples;
+        valuesMachineTemperature.fill(0);
+
+        valuesAmbientTemperature.length = samples;
+        valuesAmbientTemperature.fill(0);
+        labels.length = samples;
+        labels.fill(0);
+
+        var chart = new Chart(document.getElementById("chart"),
+            {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            data: valuesMachineTemperature,
+                            backgroundColor: 'rgba(255,218,218)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 2,
+                            lineTension: 0.5,
+                            pointRadius: 0,
+                            lable: "Machine Temperature"
+                        },
+                        {
+                            data: valuesAmbientTemperature,
+                            backgroundColor: 'rgb(240,248,255)',
+                            borderColor: 'rgb(0,191,255)',
+                            borderWidth: 2,
+                            lineTension: 0.5,
+                            pointRadius: 0,
+                            lable: "Ambient Temperature"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    animation: {
+                        duration: speed * 1.5,
+                        easing: 'linear'
+                    },
+                    legend: false,
+                    scales: {
+                        xAxes: [
+                            {
+                                display: false
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                ticks: {
+                                    max: 120,
+                                    min: 0
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl("/sensor")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on('Broadcast', (sender, message) => {
+            valuesMachineTemperature.push(message.machine.temperature);
+            valuesMachineTemperature.shift();
+
+            valuesAmbientTemperature.push(message.ambient.temperature);
+            valuesAmbientTemperature.shift();
+            chart.update();
+            });
+
+        connection.start().catch(function (err) {
+            return console.error(err.toString());
+        });;
+    });
+</script>
+
+<canvas id="chart" style="width: 1000px; height: 500px"></canvas>
