@@ -311,6 +311,12 @@ namespace UpstreamFromStorages
                                         var message = new Message(messageBytes);
                                         message.ContentEncoding = "utf-8";
                                         message.ContentType = "application/json";
+                                        
+                                        if(container == "anomaly")
+                                        {
+                                            message.Properties.Add("IsAnomaly", "True");
+                                        }
+                                        
                                         await ioTHubModuleClient.SendEventAsync("output1", message);
                                         Console.WriteLine($"Message sent {count}: {body}");
                                         count++;

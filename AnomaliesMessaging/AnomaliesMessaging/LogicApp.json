@@ -167,26 +167,35 @@
                   "type": "object"
                 }
               },
-              "runAfter": {}
+              "runAfter": {
+                "Parse_Properties": [
+                  "Succeeded"
+                ]
+              }
             },
             "Insert_Entity": {
               "type": "ApiConnection",
               "inputs": {
-                "body": {
-                  "AmbientTemperature": "@body('Parse_JSON')?['ambient']?['temperature']",
-                  "Anomaly": "@body('Parse_JSON')?['anomaly']",
-                  "Humidity": "@body('Parse_JSON')?['ambient']?['humidity']",
-                  "MachineTemperature": "@body('Parse_JSON')?['machine']?['temperature']",
-                  "PartitionKey": "MlAnomaly",
-                  "Pressure": "@body('Parse_JSON')?['machine']?['pressure']",
-                  "RowKey": "@triggerBody()?['MessageId']"
-                },
                 "host": {
                   "connection": {
                     "name": "@parameters('$connections')['azuretables_1']['connectionId']"
                   }
                 },
                 "method": "post",
+                "body": {
+                  "AmbientTemperature": "@body('Parse_JSON')?['ambient']?['temperature']",
+                  "Anomaly": "@body('Parse_JSON')?['anomaly']",
+                  "AmientHumidity": "@body('Parse_JSON')?['ambient']?['humidity']",
+                  "MachineTemperature": "@body('Parse_JSON')?['machine']?['temperature']",
+                  "PartitionKey": "MlAnomaly",
+                  "MachinePressure": "@body('Parse_JSON')?['machine']?['pressure']",
+                  "RowKey": "@triggerBody()?['MessageId']",
+                  "TimeCreated": "@body('Parse_JSON')?['timeCreated']",
+                  "IothubConnectionDeviceId": "@body('Parse_Properties')?['iothub-connection-device-id']",
+                  "IothubConnectionModuleId": "@body('Parse_Properties')?['iothub-connection-module-id']",
+                  "IothubConnectionAuthMethod": "@body('Parse_Properties')?['iothub-connection-auth-method']",
+                  "IothubConnectionAuthGenerationId": "@body('Parse_Properties')?['iothub-connection-auth-generation-id']"
+                },
                 "path": "/Tables/@{encodeURIComponent('Anomalies')}/entities"
               },
               "runAfter": {
@@ -194,6 +203,66 @@
                   "Succeeded"
                 ]
               }
+            },
+            "Parse_Properties": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@triggerBody()?['Properties']",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "iothub-connection-device-id": {
+                      "type": "string"
+                    },
+                    "iothub-connection-module-id": {
+                      "type": "string"
+                    },
+                    "iothub-connection-auth-method": {
+                      "type": "string"
+                    },
+                    "iothub-connection-auth-generation-id": {
+                      "type": "string"
+                    },
+                    "DeliveryCount": {
+                      "type": "string"
+                    },
+                    "EnqueuedSequenceNumber": {
+                      "type": "string"
+                    },
+                    "EnqueuedTimeUtc": {
+                      "type": "string"
+                    },
+                    "ExpiresAtUtc": {
+                      "type": "string"
+                    },
+                    "LockedUntilUtc": {
+                      "type": "string"
+                    },
+                    "LockToken": {
+                      "type": "string"
+                    },
+                    "MessageId": {
+                      "type": "string"
+                    },
+                    "ScheduledEnqueueTimeUtc": {
+                      "type": "string"
+                    },
+                    "SequenceNumber": {
+                      "type": "string"
+                    },
+                    "Size": {
+                      "type": "string"
+                    },
+                    "State": {
+                      "type": "string"
+                    },
+                    "TimeToLive": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "runAfter": {}
             }
           },
           "parameters": {
