@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "value": "AnomaliesMessaging"
+    },
+    "servicebus_1_connectionString": {
+      "value": "Endpoint=sb://iotedgepoc.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=t4bgpUTkRlsmnqw0t+M83dyK7w8PGX5cGg3TbBxjUVg="
+    },
+    "azuretables_1_sharedkey": {
+      "value": "Ib4t4JK+zBVoluuKB3+2242egkjyqXB0pfvGXx8AfgRz0B0FHvNWthBVzYckuUMJK/GDjwRiYpmr4RNXt1eiOQ=="
+    },
+    "azuretables_2_sharedkey": {
+      "value": "Ib4t4JK+zBVoluuKB3+2242egkjyqXB0pfvGXx8AfgRz0B0FHvNWthBVzYckuUMJK/GDjwRiYpmr4RNXt1eiOQ=="
+    },
+    "servicebus_2_connectionString": {
+      "value": "Endpoint=sb://iotedgepoc.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=t4bgpUTkRlsmnqw0t+M83dyK7w8PGX5cGg3TbBxjUVg="
+    }
+  }
+}

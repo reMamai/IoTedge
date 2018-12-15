@@ -82,40 +82,20 @@
               "createOptions": {}
             }
           },
-          "StoreMessagesToBlob": {
+          "storagefacade": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "${MODULES.StoreMessagesToBlob.debug}",
-              "createOptions": {}
-            }
-          },
-          "UpstreamFromBlob": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.UpstreamFromBlob.debug}",
-              "createOptions": {}
-            }
-          },
-          "anomalydetection": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/anomalydetection:1",
+              "image": "${MODULES.StorageFacade.debug}",
               "createOptions": {}
             }
           },
           "mongodbmodule": {
             "type": "docker",
             "settings": {
-              "image": "amlworkspace4142236962.azurecr.io/jnjmongodb:latest",
+              "image": "iotregistrydev.azurecr.io/jnjmongodb:latest",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/mongodb\"],\"PortBindings\":{\"27017\":[{\"HostPort\":\"27017\"}]}}}"
             },
             "status": "running",

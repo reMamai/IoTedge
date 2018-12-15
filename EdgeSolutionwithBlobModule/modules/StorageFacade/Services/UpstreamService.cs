@@ -293,6 +293,12 @@ namespace StorageFacade.Services
                                         var message = new Message(messageBytes);
                                         message.ContentEncoding = "utf-8";
                                         message.ContentType = "application/json";
+                                        
+                                        if(container == anomalyContainer)
+                                        {
+                                            message.Properties.Add("IsAnomaly", "True");
+                                        }
+                                        
                                         await moduleClient.SendEventAsync("output1", message);
                                         Console.WriteLine($"Message sent {count}: {body}");
                                         count++;
