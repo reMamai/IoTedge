@@ -15,6 +15,9 @@ namespace StorageFacade.Services
     using Newtonsoft.Json;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
+    using Microsoft.AspNetCore.SignalR.Client;
+    using StorageFacade.Models;
+    
     public class StoreToBlobService : IServicesOnEdge
     {
         const string temperatureContainer = "temperature";
@@ -28,12 +31,17 @@ namespace StorageFacade.Services
                 new KeyValuePair<string, bool>(anomalyContainer, false)
             });
         private int counter;
+        private HubConnection hubConnection;
 
         private ModuleClient _moduleClient;
 
         public StoreToBlobService(ModuleClient moduleClient)
         {
             _moduleClient = moduleClient;
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("http://mvconedge/sensor")
+                .Build();
+            hubConnection.StartAsync().Wait();
         }
 
         public async Task RegisterInputMessageHandlers()
@@ -52,12 +60,24 @@ namespace StorageFacade.Services
 
         private async Task<MessageResponse> ProcessMessageFromSensor(Message message, object userContext)
         {
+            await SendToSignalrHub(message);
             return await StoreMessage(message, userContext, temperatureContainer);
         }
 
         private async Task<MessageResponse> ProcessMessageFromML(Message message, object userContext)
         {
             return await StoreMessage(message, userContext, anomalyContainer);
+        }
+
+        private async Task SendToSignalrHub(Message message)
+        {
+            var messageBytes = message.GetBytes();
+            var messageString = Encoding.UTF8.GetString(messageBytes);
+            if (!string.IsNullOrEmpty(messageString))
+            {
+                var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
+                await hubConnection.InvokeAsync("Broadcast", "tempSensor", messageBody, null);
+            }
         }
 
         private async Task<MessageResponse> StoreMessage(Message message, object userContext, string container)

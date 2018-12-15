@@ -39,7 +39,7 @@ namespace mvc.Controllers
         };
         public HomeController()
         {            
-            //Init().Wait();
+            Init().Wait();
         }
 
         private async Task Init()
@@ -138,9 +138,8 @@ namespace mvc.Controllers
             return View(model);
         }
 
-        public async Task<IActionResult> Charts()
+        public IActionResult Charts()
         {
-            //var model = await FetchFromMongo(mongoCollectionName);
             return View();
         }
 
