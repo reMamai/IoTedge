@@ -17,7 +17,7 @@ namespace StorageFacade.Services
     using Microsoft.WindowsAzure.Storage.Blob;
     using Microsoft.AspNetCore.SignalR.Client;
     using StorageFacade.Models;
-    
+
     public class StoreToBlobService : IServicesOnEdge
     {
         const string temperatureContainer = "temperature";
@@ -39,7 +39,7 @@ namespace StorageFacade.Services
         {
             _moduleClient = moduleClient;
             hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://mvconedge/sensor")
+                .WithUrl("http://mvconedge:80/sensor")
                 .Build();
             hubConnection.StartAsync().Wait();
         }
@@ -76,7 +76,12 @@ namespace StorageFacade.Services
             if (!string.IsNullOrEmpty(messageString))
             {
                 var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
-                await hubConnection.InvokeAsync("Broadcast", "tempSensor", messageBody, null);
+                SignalrMessage signalrMessage = new SignalrMessage 
+                {
+                    machine_temperature = messageBody.machine.temperature,
+                    ambient_temperature = messageBody.ambient.temperature
+                };
+                await hubConnection.InvokeAsync("Broadcast", "tempSensor", signalrMessage);
             }
         }
 

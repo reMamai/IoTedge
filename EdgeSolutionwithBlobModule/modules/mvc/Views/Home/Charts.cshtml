@@ -30,21 +30,21 @@
                     datasets: [
                         {
                             data: valuesMachineTemperature,
-                            backgroundColor: 'rgba(255,218,218)',
-                            borderColor: 'rgb(255, 99, 132)',
-                            borderWidth: 2,
-                            lineTension: 0.5,
-                            pointRadius: 0,
-                            lable: "Machine Temperature"
-                        },
-                        {
-                            data: valuesAmbientTemperature,
                             backgroundColor: 'rgb(240,248,255)',
                             borderColor: 'rgb(0,191,255)',
                             borderWidth: 2,
                             lineTension: 0.5,
                             pointRadius: 0,
                             lable: "Ambient Temperature"
+                        },
+                        {
+                            data: valuesAmbientTemperature,
+                            backgroundColor: 'rgba(255,218,218)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 2,
+                            lineTension: 0.5,
+                            pointRadius: 0,
+                            lable: "Machine Temperature"
                         }
                     ]
                 },
@@ -79,10 +79,10 @@
             .build();
 
         connection.on('Broadcast', (sender, message) => {
-            valuesMachineTemperature.push(message.machine.temperature);
+            valuesMachineTemperature.push(message.ambient_temperature);
             valuesMachineTemperature.shift();
 
-            valuesAmbientTemperature.push(message.ambient.temperature);
+            valuesAmbientTemperature.push(message.machine_temperature);            
             valuesAmbientTemperature.shift();
             chart.update();
             });

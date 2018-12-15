@@ -6,7 +6,7 @@ namespace mvc.Hubs
 {
     public class SensorHub : Hub
     {
-        public Task Broadcast(string sender, MessageBody message)
+        public Task Broadcast(string sender, SignalrMessage message)
         {
             return Clients
                 .AllExcept(new[] { Context.ConnectionId })
