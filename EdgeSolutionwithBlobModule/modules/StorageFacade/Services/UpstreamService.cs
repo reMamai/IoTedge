@@ -1,96 +1,78 @@
-namespace UpstreamFromStorages
+namespace StorageFacade.Services
 {
-    using System;
-    using System.Net;
-    using System.IO;
-    using System.Collections.Generic;
-    using System.Runtime.InteropServices;
-    using System.Runtime.Loader;
-    using System.Security.Cryptography.X509Certificates;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Newtonsoft.Json;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
     using MongoDB.Bson;
     using MongoDB.Driver;
+    using Newtonsoft.Json;
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using StorageFacade.Models;
 
-    class Program
+    public class UpstreamService : IServicesOnEdge
     {
-        const string temperatureContainer = "temperature";
-        const string anomalyContainer = "anomaly";
-        const string mongoCollectionName = "enrichedTempSensorData";
-        static int counter;
-        static volatile bool shouldUpstream = false;
-        static int IntervalForCommands = 5000;
-        static UpstreamSettings upstreamSettings = new UpstreamSettings();
-        static int TodayMessagesTotal = 0;
-        static long TodayMessagesSizeInBytes = 0;
-        static DateTime CurrentLimitsDay = DateTime.UtcNow;
-        static string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
-        static string mongoConnectionString = "mongodb://mongodbmodule:27017";
-        private static string dbName = "tempSensorData";
+        private const string temperatureContainer = "temperature";
+        private const string anomalyContainer = "anomaly";
+        private const string mongoCollectionName = "enrichedTempSensorData";
+        private const string dbName = "tempSensorData";
+        private const int IntervalForCommands = 5000;
+        private const string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
+        private const string mongoConnectionString = "mongodb://mongodbmodule:27017";
+        private int counter;
+        private volatile bool shouldUpstream = false;
+        private UpstreamSettings _upstreamSettings;
+        private int TodayMessagesTotal = 0;
+        private long TodayMessagesSizeInBytes = 0;
+        private DateTime CurrentLimitsDay = DateTime.UtcNow;
+        private ModuleClient _moduleClient;
 
-        static void Main(string[] args)
+        public UpstreamService(ModuleClient moduleClient)
         {
-            Init().Wait();
-
-            // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
-            AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            WhenCancelled(cts.Token).Wait();
+            _moduleClient = moduleClient;
+            _upstreamSettings = new UpstreamSettings
+            {
+                TotalMessagesLimit = 100,
+                TotalSizeInKbLimit = 100,
+                AnomalyPriority = 1,
+                TemperaturePriority = 2,
+                MirthPriority = 3
+            };
         }
 
-        /// <summary>
-        /// Handles cleanup operations when app is cancelled or unloads
-        /// </summary>
-        public static Task WhenCancelled(CancellationToken cancellationToken)
+        public async Task RegisterInputMessageHandlers()
         {
-            var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
-            return tcs.Task;
+            await _moduleClient.SetInputMessageHandlerAsync("command", ExecuteCommand, null);
         }
 
-        /// <summary>
-        /// Initializes the ModuleClient and sets up the callback to receive
-        /// messages containing temperature information
-        /// </summary>
-        static async Task Init()
+        public async Task RegisterMethodHandlers()
         {
-            upstreamSettings.InitDefaults();
-            AmqpTransportSettings amqpSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-            ITransportSettings[] settings = { amqpSetting };
-
-            // Open a connection to the Edge runtime
-            ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await ioTHubModuleClient.OpenAsync();
-            Console.WriteLine("IoT Hub module client initialized.");
-
-            // Register callback to be called when a message is received by the module
-            await ioTHubModuleClient.SetInputMessageHandlerAsync("command", ExecuteCommand, null);
-
-            await ioTHubModuleClient.SetMethodHandlerAsync("StartUpstream", StartUpstream, null);
-            await ioTHubModuleClient.SetMethodHandlerAsync("StopUpstream", StopUpstream, null);
-            await ioTHubModuleClient.SetMethodHandlerAsync("CleanBlobTemperature", CleanBlobTemperature, null);
-            await ioTHubModuleClient.SetMethodHandlerAsync("CleanBlobAnomaly", CleanBlobAnomaly, null);
-
-            Upstream(ioTHubModuleClient);
+            await _moduleClient.SetMethodHandlerAsync("StartUpstream", StartUpstream, null);
+            await _moduleClient.SetMethodHandlerAsync("StopUpstream", StopUpstream, null);
+            await _moduleClient.SetMethodHandlerAsync("CleanBlobTemperature", CleanBlobTemperature, null);
+            await _moduleClient.SetMethodHandlerAsync("CleanBlobAnomaly", CleanBlobAnomaly, null);
         }
 
-        private static async Task<MethodResponse> CleanBlobTemperature(MethodRequest request, object userContext)
+        public void RunBackgroundTask()
+        {
+            Upstream(_moduleClient);
+        }
+
+        private async Task<MethodResponse> CleanBlobTemperature(MethodRequest request, object userContext)
         {
             return await CleanBlob(temperatureContainer);
         }
 
-        private static async Task<MethodResponse> CleanBlobAnomaly(MethodRequest request, object userContext)
+        private async Task<MethodResponse> CleanBlobAnomaly(MethodRequest request, object userContext)
         {
             return await CleanBlob(anomalyContainer);
         }
 
-        private static async Task<MethodResponse> CleanBlob(string container)
+        private async Task<MethodResponse> CleanBlob(string container)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
             Console.WriteLine("Received CleanBlob command via direct method invocation");
@@ -123,13 +105,13 @@ namespace UpstreamFromStorages
             return response;
         }
 
-        private static Task<MethodResponse> StartUpstream(MethodRequest request, object userContext)
+        private Task<MethodResponse> StartUpstream(MethodRequest request, object userContext)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
             Console.WriteLine($"Received StartUpstream command: {request.DataAsJson}");
             try
             {
-                upstreamSettings = JsonConvert.DeserializeObject<UpstreamSettings>(request.DataAsJson);
+                _upstreamSettings = JsonConvert.DeserializeObject<UpstreamSettings>(request.DataAsJson);
             }
             catch (Exception ex)
             {
@@ -139,7 +121,7 @@ namespace UpstreamFromStorages
             return Task.FromResult(response);
         }
 
-        private static Task<MethodResponse> StopUpstream(MethodRequest request, object userContext)
+        private Task<MethodResponse> StopUpstream(MethodRequest request, object userContext)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
             Console.WriteLine("Received StopUpstream command via direct method invocation");
@@ -147,7 +129,7 @@ namespace UpstreamFromStorages
             return Task.FromResult(response);
         }
 
-        static async Task Upstream(ModuleClient ioTHubModuleClient)
+        private async Task Upstream(ModuleClient moduleClient)
         {
             while (true)
             {
@@ -156,23 +138,23 @@ namespace UpstreamFromStorages
                     if (shouldUpstream)
                     {
                         var upstreamMethods = new SortedDictionary<int, FuncWithArgs>();
-                        upstreamMethods.Add(upstreamSettings.AnomalyPriority, new FuncWithArgs
+                        upstreamMethods.Add(_upstreamSettings.AnomalyPriority, new FuncWithArgs
                         {
                             Func = UpstreamFromBlob,
                             Container = anomalyContainer,
-                            ModuleClient = ioTHubModuleClient
+                            ModuleClient = moduleClient
                         });
-                        upstreamMethods.Add(upstreamSettings.TemperaturePriority, new FuncWithArgs
+                        upstreamMethods.Add(_upstreamSettings.TemperaturePriority, new FuncWithArgs
                         {
                             Func = UpstreamFromBlob,
                             Container = temperatureContainer,
-                            ModuleClient = ioTHubModuleClient
+                            ModuleClient = moduleClient
                         });
-                        upstreamMethods.Add(upstreamSettings.MirthPriority, new FuncWithArgs
+                        upstreamMethods.Add(_upstreamSettings.MirthPriority, new FuncWithArgs
                         {
                             Func = UpstreamFromMongo,
                             Container = mongoCollectionName,
-                            ModuleClient = ioTHubModuleClient
+                            ModuleClient = moduleClient
                         });
                         foreach (var method in upstreamMethods)
                         {
@@ -194,7 +176,7 @@ namespace UpstreamFromStorages
             }
         }
 
-        private static bool IsLimitsReached(byte[] message)
+        private bool IsLimitsReached(byte[] message)
         {
             if (CurrentLimitsDay.Date != DateTime.UtcNow.Date)
             {
@@ -202,7 +184,7 @@ namespace UpstreamFromStorages
                 TodayMessagesTotal = 0;
                 TodayMessagesSizeInBytes = 0;
             }
-            if (TodayMessagesTotal + 1 < upstreamSettings.TotalMessagesLimit)
+            if (TodayMessagesTotal + 1 < _upstreamSettings.TotalMessagesLimit)
             {
                 TodayMessagesTotal++;
             }
@@ -211,7 +193,7 @@ namespace UpstreamFromStorages
                 Console.WriteLine($"Limit by total messages has been reached: {TodayMessagesTotal + 1}");
                 return true;
             }
-            if (TodayMessagesSizeInBytes + message.LongLength < upstreamSettings.TotalSizeInKbLimit * 1024)
+            if (TodayMessagesSizeInBytes + message.LongLength < _upstreamSettings.TotalSizeInKbLimit * 1024)
             {
                 TodayMessagesSizeInBytes += message.LongLength;
             }
@@ -223,12 +205,12 @@ namespace UpstreamFromStorages
             return false;
         }
 
-        private static IMongoCollection<T> GetCollection<T>(MongoClient client) where T : class
+        private IMongoCollection<T> GetCollection<T>(MongoClient client) where T : class
         {
             var database = client.GetDatabase(dbName);
             return database.GetCollection<T>(mongoCollectionName);
         }
-        private static async Task UpstreamFromMongo(string container, ModuleClient ioTHubModuleClient)
+        private async Task UpstreamFromMongo(string container, ModuleClient moduleClient)
         {
             Console.WriteLine("***");
             Console.WriteLine($"Upstream from Mongo: {container}");
@@ -242,7 +224,7 @@ namespace UpstreamFromStorages
                 foreach (var document in all.ToList())
                 {
                     if (!shouldUpstream)
-                       break;
+                        break;
 
                     var body = document.ToJson();
                     var messageBytes = Encoding.UTF8.GetBytes(body);
@@ -256,7 +238,7 @@ namespace UpstreamFromStorages
                         var message = new Message(messageBytes);
                         message.ContentEncoding = "utf-8";
                         message.ContentType = "application/json";
-                        await ioTHubModuleClient.SendEventAsync("output1", message);
+                        await moduleClient.SendEventAsync("output1", message);
                         Console.WriteLine($"Message sent {count}: {body} from Mongo DB");
                         count++;
                     }
@@ -268,7 +250,7 @@ namespace UpstreamFromStorages
             }
         }
 
-        private static async Task UpstreamFromBlob(string container, ModuleClient ioTHubModuleClient)
+        private async Task UpstreamFromBlob(string container, ModuleClient moduleClient)
         {
             Console.WriteLine("***");
             Console.WriteLine($"Upstream from Blob: {container}");
@@ -311,7 +293,7 @@ namespace UpstreamFromStorages
                                         var message = new Message(messageBytes);
                                         message.ContentEncoding = "utf-8";
                                         message.ContentType = "application/json";
-                                        await ioTHubModuleClient.SendEventAsync("output1", message);
+                                        await moduleClient.SendEventAsync("output1", message);
                                         Console.WriteLine($"Message sent {count}: {body}");
                                         count++;
                                     }
@@ -332,7 +314,7 @@ namespace UpstreamFromStorages
         /// It just pipe the messages without any change.
         /// It prints all the incoming messages.
         /// </summary>
-        static async Task<MessageResponse> ExecuteCommand(Message message, object userContext)
+        private Task<MessageResponse> ExecuteCommand(Message message, object userContext)
         {
             Console.WriteLine("ExecuteCommand");
             int counterValue = Interlocked.Increment(ref counter);
@@ -372,56 +354,13 @@ namespace UpstreamFromStorages
                         Console.WriteLine($"Command {prop.Key} is not supported");
                 }
             }
-            return MessageResponse.Completed;
+            return Task.FromResult(MessageResponse.Completed);
         }
-    }
-
-    public class UpstreamSettings
-    {
-        public int TotalMessagesLimit { get; set; }
-        public int TotalSizeInKbLimit { get; set; }
-        public int TemperaturePriority { get; set; }
-        public int AnomalyPriority { get; set; }
-        public int MirthPriority { get; set; }
-
-        public void InitDefaults()
+        class FuncWithArgs
         {
-            TotalMessagesLimit = 100;
-            TotalSizeInKbLimit = 100;
-            AnomalyPriority = 1;
-            TemperaturePriority = 2;
-            MirthPriority = 3;
+            public Func<string, ModuleClient, Task> Func { get; set; }
+            public string Container { get; set; }
+            public ModuleClient ModuleClient { get; set; }
         }
-    }
-
-    public class FuncWithArgs
-    {
-        public Func<string, ModuleClient, Task> Func { get; set; }
-        public string Container { get; set; }
-        public ModuleClient ModuleClient { get; set; }
-    }
-    class MessageBody
-    {
-        public ObjectId _id { get; set; }
-        public Machine machine { get; set; }
-        public Ambient ambient { get; set; }
-        public string timeCreated { get; set; }
-        public MirthInfo mirthInfo { get; set; }
-    }
-    class Machine
-    {
-        public double temperature { get; set; }
-        public double pressure { get; set; }
-    }
-    class Ambient
-    {
-        public double temperature { get; set; }
-        public int humidity { get; set; }
-    }
-
-    class MirthInfo
-    {
-        public string pId { get; set; }
-        public string name { get; set; }
     }
 }

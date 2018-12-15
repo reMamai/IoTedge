@@ -62,20 +62,10 @@
             "status": "running",
             "restartPolicy": "always"
           },
-          "StoreMessagesToBlob": {
+          "storagefacade": {
             "type": "docker",
             "settings": {
-              "image": "${MODULES.StoreMessagesToBlob}",
-              "createOptions": "{}"
-            },
-            "version": "1.0",
-            "status": "running",
-            "restartPolicy": "always"
-          },
-          "UpstreamFromStorages": {
-            "type": "docker",
-            "settings": {
-              "image": "${MODULES.UpstreamFromStorages}",
+              "image": "${MODULES.StorageFacade}",
               "createOptions": "{}"
             },
             "version": "1.0",
@@ -126,16 +116,6 @@
             "version": "1.0",
             "status": "running",
             "restartPolicy": "always"
-          },
-          "StoreMessagesToMongo": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "${MODULES.StoreMessagesToMongo}",
-              "createOptions": {}
-            }
           }
         }
       }
@@ -144,13 +124,13 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {          
-          "sensorToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputfortempsensor\")",
+          "sensorTostoragefacade": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/storagefacade/inputs/inputfortempsensor\")",
           "sensorToMachineLearning":"FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/anomalydetection/inputs/amlInput\")",
-          "fakemlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/*  INTO BrokeredEndpoint(\"/modules/StoreMessagesToBlob/inputs/inputforml\")",
+          "fakemlToStoreMessagesToBlob": "FROM /messages/modules/tempSensor/outputs/*  INTO BrokeredEndpoint(\"/modules/storagefacade/inputs/inputforml\")",
           "telemetryToAsa": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/samodule/inputs/temperature\")",
           "alertsToReset": "FROM /messages/modules/samodule/outputs/alert INTO BrokeredEndpoint(\"/modules/tempSensor/inputs/control\")",
-          "UpstreamFromStoragesToIoTHub": "FROM /messages/modules/UpstreamFromStorages/outputs/output1 INTO $upstream",
-          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/StoreMessagesToMongo/inputs/inputfortemp\")"
+          "UpstreamFromStoragesToIoTHub": "FROM /messages/modules/storagefacade/outputs/output1 INTO $upstream",
+          "telemetryToMongo": "FROM /messages/modules/tempSensorForMongo/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/storagefacade/inputs/inputfortemp\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 15

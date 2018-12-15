@@ -28,7 +28,7 @@ namespace mvc.Controllers
         private string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
         private ModuleClient ioTHubModuleClient = null;
         private string deviceId;
-        private string moduleUpstreamFromStorages = "UpstreamFromStorages";
+        private string moduleUpstreamFromStorages = "storagefacade";
         private static UpstreamSettings settings = new UpstreamSettings
         {
             TotalMessagesLimit = 100,
