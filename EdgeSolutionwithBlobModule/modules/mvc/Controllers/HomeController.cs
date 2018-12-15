@@ -39,7 +39,7 @@ namespace mvc.Controllers
         };
         public HomeController()
         {            
-            Init().Wait();
+            //Init().Wait();
         }
 
         private async Task Init()
@@ -136,6 +136,12 @@ namespace mvc.Controllers
         {
             var model = await FetchFromMongo(mongoCollectionName);
             return View(model);
+        }
+
+        public async Task<IActionResult> Charts()
+        {
+            //var model = await FetchFromMongo(mongoCollectionName);
+            return View();
         }
 
         public async Task<IActionResult> BlobAnomaly()
