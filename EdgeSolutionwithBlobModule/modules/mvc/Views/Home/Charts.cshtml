@@ -3,7 +3,7 @@
     ViewData["Title"] = "Charts";
 }
 
-<h2>Charts</h2>
+<canvas id="chart" style="width: 1000px; height: 500px; display:block; font-size:25px;"></canvas>
 
 <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function () {
@@ -15,13 +15,9 @@
         var labels = [];
 
         valuesMachineTemperature.length = samples;
-        valuesMachineTemperature.fill(0);
-
         valuesAmbientTemperature.length = samples;
-        valuesAmbientTemperature.fill(0);
         labels.length = samples;
         labels.fill(0);
-
         var chart = new Chart(document.getElementById("chart"),
             {
                 type: 'line',
@@ -35,7 +31,7 @@
                             borderWidth: 2,
                             lineTension: 0.5,
                             pointRadius: 0,
-                            lable: "Ambient Temperature"
+                            label: "Ambient Temperature"
                         },
                         {
                             data: valuesAmbientTemperature,
@@ -44,17 +40,21 @@
                             borderWidth: 2,
                             lineTension: 0.5,
                             pointRadius: 0,
-                            lable: "Machine Temperature"
+                            label: "Machine Temperature"
                         }
                     ]
                 },
                 options: {
-                    responsive: false,
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Temperature Chart',
+                        fontSize: "20"
+                    },
                     animation: {
                         duration: speed * 1.5,
                         easing: 'linear'
                     },
-                    legend: false,
                     scales: {
                         xAxes: [
                             {
@@ -93,4 +93,4 @@
     });
 </script>
 
-<canvas id="chart" style="width: 1000px; height: 500px"></canvas>
+
