@@ -14,6 +14,7 @@ using mvc.Models;
 using Newtonsoft.Json;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using StackExchange.Redis;
 
 namespace mvc.Controllers
 {
@@ -24,6 +25,7 @@ namespace mvc.Controllers
         const string mongoCollectionName = "enrichedTempSensorData";
         const string mongoConnectionString = "mongodb://mongodbmodule:27017";
         const string dbName = "tempSensorData";
+        const string redisKey = "upstream_settings";
 
         private string storageConnectionString = @"DefaultEndpointsProtocol=https;BlobEndpoint=http://blob:11002/adminmg;AccountName=adminmg;AccountKey=3Q7/WEojjmagYSGUThRQew85lfPQEi0yiGMy2QtWxv6MmtYiEgb16cDLZFDUZU6t76bzU/jD57oNtnUeqTv0VQ==";
         private ModuleClient ioTHubModuleClient = null;
@@ -37,6 +39,7 @@ namespace mvc.Controllers
             TemperaturePriority = 2,
             MirthPriority = 3
         };
+        private ConnectionMultiplexer redis;
         public HomeController()
         {            
             Init().Wait();
@@ -50,6 +53,7 @@ namespace mvc.Controllers
             await ioTHubModuleClient.OpenAsync();
             // Get deviced id of this device, exposed as a system variable by the iot edge runtime: export IOTEDGE_DEVICEID="myEdgeDeviceInGC"
             deviceId = System.Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+            redis = ConnectionMultiplexer.Connect("redis:6379");
         }
         public IActionResult Index()
         {
@@ -177,13 +181,20 @@ namespace mvc.Controllers
         }
 
         public IActionResult Settings()
-        {            
+        {
+            var db = redis.GetDatabase();
+            string storedsettings = db.StringGet(redisKey);
+            if (!string.IsNullOrEmpty(storedsettings))
+                settings =  JsonConvert.DeserializeObject<UpstreamSettings>(storedsettings);
             return View(settings);
         }
         [HttpPost]
         public IActionResult Settings([Bind("AnomalyPriority, MirthPriority, TemperaturePriority, TotalMessagesLimit, TotalSizeInKbLimit")]UpstreamSettings model)
         {
             settings = model;
+            var db = redis.GetDatabase();
+            var resultString = JsonConvert.SerializeObject(settings);
+            db.StringSet(redisKey, resultString);
             return View(settings);
         }
 

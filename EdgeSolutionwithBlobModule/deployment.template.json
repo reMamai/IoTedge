@@ -116,6 +116,16 @@
             "version": "1.0",
             "status": "running",
             "restartPolicy": "always"
+          },
+          "redis": {
+            "type": "docker",
+            "settings": {
+                "image": "redis:latest",
+                "createOptions": "{\"HostConfig\":{\"Binds\":[\"/data/db\"],\"PortBindings\":{\"6379/tcp\":[{\"HostPort\":\"6379\"}]}}}"
+            },
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "1.0"
           }
         }
       }
