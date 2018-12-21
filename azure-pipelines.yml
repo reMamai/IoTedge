@@ -17,5 +17,5 @@ steps:
   displayName: 'restoring package for MVC module'
 - script: dotnet build ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration)
   displayName: 'dotnet build MVC Module $(buildConfiguration)'
-- script: dotnet publish ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration) -o /app
+- script: dotnet publish ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration) 
   displayName: 'publish MVC Module $(buildConfiguration) to output'
