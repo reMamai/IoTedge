@@ -25,4 +25,4 @@ steps:
   
 #- task: PublishBuildArtifacts@1
 
-- script: docker build ./EdgeSolutionwithBlobModule/modules/mvc/Dockerfile.amd64
+- script: docker build ./EdgeSolutionwithBlobModule/modules/mvc/Dockerfile.amd64 -t mvc:1
