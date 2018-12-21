@@ -12,6 +12,7 @@ pool:
 variables:
   buildConfiguration: 'Release'
 
+
 steps:
 - script: dotnet restore ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj
   displayName: 'restoring package for MVC module'
@@ -23,3 +24,6 @@ steps:
   displayName: 'publish MVC Module $(buildConfiguration) to output'
   
 - task: PublishBuildArtifacts@1
+
+- script: docker build -t mvc:1 ./EdgeSolutionwithBlobModule/modules/mvc/dockerfile.mvc
+
