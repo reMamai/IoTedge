@@ -14,5 +14,8 @@ variables:
 
 steps:
 - script: dotnet restore ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj
-- script: dotnet build .\EdgeSolutionwithBlobModule\modules\mvc\mvc.csproj --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+  displayName: 'restoring package for MVC module'
+- script: dotnet build ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration)
+  displayName: 'dotnet build MVC Module $(buildConfiguration)'
+- script: dotnet publish ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration) -o /app
+  displayName: 'publish MVC Module $(buildConfiguration) to output'
