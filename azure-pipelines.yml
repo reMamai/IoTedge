@@ -13,7 +13,7 @@ variables:
   buildConfiguration: 'Release'
 
 
-#steps:
+steps:
 #- script: dotnet restore ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj
 #  displayName: 'restoring package for MVC module'
   
