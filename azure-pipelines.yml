@@ -25,5 +25,6 @@ steps:
   
 - task: PublishBuildArtifacts@1
 
-- script: docker build -t mvc:1 ./EdgeSolutionwithBlobModule/modules/mvc/dockerfile.mvc
+- script: docker build -t mvc:1 -f ./EdgeSolutionwithBlobModule/modules/mvc/Dockerfile.amd64
+
 
