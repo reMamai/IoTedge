@@ -14,15 +14,15 @@ variables:
 
 
 steps:
-- script: dotnet restore ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj
+- script: dotnet restore ./EdgeSolution/modules/mvc/mvc.csproj
   displayName: 'restoring package for MVC module'
   
-- script: dotnet build ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration)
+- script: dotnet build ./EdgeSolution/modules/mvc/mvc.csproj --configuration $(buildConfiguration)
   displayName: 'dotnet build MVC Module $(buildConfiguration)'
 
-- script: dotnet publish ./EdgeSolutionwithBlobModule/modules/mvc/mvc.csproj --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+- script: dotnet publish ./EdgeSolution/modules/mvc/mvc.csproj --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
   displayName: 'publish MVC Module $(buildConfiguration) to output'
   
 - task: PublishBuildArtifacts@1
 
-- script: docker build --rm -f "./EdgeSolutionwithBlobModule/modules/mvc/Dockerfile.mvc" -t mvc:latest $(Build.ArtifactStagingDirectory)
+- script: docker build --rm -f "./EdgeSolution/modules/mvc/Dockerfile.mvc" -t mvc:latest $(Build.ArtifactStagingDirectory)
